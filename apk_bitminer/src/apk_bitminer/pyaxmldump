@@ -1,0 +1,8 @@
+#!/bin/env python3
+
+# Main entry point for axmldump, used to dump an android manifest file from an apk
+
+from androidtools.apkdump import parsing
+
+if __name__ == "__main__":
+    parsing.main_axml()
