@@ -5,7 +5,6 @@ import sys
 import tempfile
 import zipfile
 from abc import ABCMeta, abstractmethod
-from . import junit3
 from . import ByteStream
 
 

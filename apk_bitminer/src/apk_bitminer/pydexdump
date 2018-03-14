@@ -1,5 +1,5 @@
 #!/bin/env python3
-from androidtools.apkdump import parsing
+from apk_bitminer import parsing
 
 # Main entry point for dexdump, used to dump test information extracted form the dex files within an Android apk
 
