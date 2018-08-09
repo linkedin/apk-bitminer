@@ -1,10 +1,14 @@
 import os
+import re
 import shutil
 import struct
 import sys
 import tempfile
 import zipfile
 from abc import ABCMeta, abstractmethod
+
+import six
+
 from . import ByteStream
 
 
@@ -471,7 +475,9 @@ class DexParser(object):
         self._bytestream = ByteStream(file_name)
         self._headers = DexParser.Header(self._bytestream)
         self._headers.validate()
-        self._package_filters = package_names or []
+        # compile any regex patterns ahead of time and only once here
+        packages = [re.compile(p[4:]) if p.startswith('re::') else p for p in package_names or []]
+        self._package_filters = packages
         self._ids = {}
         for clazz in [DexParser.StringIdItem, DexParser.TypeIdItem, DexParser.ProtoIdItem,
                       DexParser.FieldIdItem, DexParser.MethodIdItem, DexParser.ClassDefItem]:
@@ -511,9 +517,28 @@ class DexParser(object):
     @staticmethod
     def _descriptor2name(name):
         """
-        :return: the name reformatted into the format expected for parameter-passing to an adb am isntrument command
+        :return: the name reformatted into the format expected for parameter-passing to an adb am instrument command
         """
         return name[1:-1].replace('/', '.')
+
+    @staticmethod
+    def _is_match(name, filter):
+        """
+        check for match against filter.  If filter is not string, assume it is a regex compiled pattern object
+        :param name: name to be matched
+        :param filter: filter to match against
+        :return: whether name matches filter
+        """
+        if not isinstance(filter, six.string_types):
+            # have re expression pattern object
+            return bool(re.match(filter, name))
+        elif '*' in filter:
+            # wildcard syntax filter:
+            import fnmatch
+            filtered = fnmatch.fnmatch(name, filter)
+            return bool(filtered)
+        else:
+            return name.startswith(filter)
 
     def find_junit3_tests(self, descriptors=list(JUNIT3_DEFAULT_DESCRIPTORS)):
         """
@@ -522,12 +547,10 @@ class DexParser(object):
         """
         for class_def in self.find_classes_directly_inherited_from(descriptors):
             dot_sep_name = self._descriptor2name(class_def.descriptor)
-            if self._package_filters and all([dot_sep_name not in f for f in self._package_filters]):
-                continue
-
-            for method in self.find_method_names(class_def):
-                if method.startswith("test"):
-                    yield method
+            if not self._package_filters or  any([self._is_match(dot_sep_name, f) for f in self._package_filters]):
+                for method in self.find_method_names(class_def):
+                    if method.startswith("test"):
+                        yield method
 
     def find_junit4_tests(self):
         """
@@ -537,17 +560,16 @@ class DexParser(object):
         ignored_annotation_descriptor = "Lorg/junit/Ignore;"
         for class_def in [c for c in self._ids[DexParser.ClassDefItem] if c.annotations_offset != 0]:
                 dot_sep_name = self._descriptor2name(class_def.descriptor)
-                if self._package_filters and all([f not in dot_sep_name for f in self._package_filters]):
-                    continue
-                with ByteStream.ContiguousReader(self._bytestream, offset=class_def.annotations_offset):
-                    directory = DexParser.AnnotationsDirectoryItem(self._bytestream)
-                ignored_names = [n for n in directory.get_methods_with_annotation(ignored_annotation_descriptor,
-                                                                                  self._ids[DexParser.MethodIdItem])]
+                if not self._package_filters or any([self._is_match(dot_sep_name, f) for f in self._package_filters]):
+                    with ByteStream.ContiguousReader(self._bytestream, offset=class_def.annotations_offset):
+                        directory = DexParser.AnnotationsDirectoryItem(self._bytestream)
+                    ignored_names = [n for n in directory.get_methods_with_annotation(ignored_annotation_descriptor,
+                                                                                      self._ids[DexParser.MethodIdItem])]
 
-                for name in directory.get_methods_with_annotation(test_annotation_descriptor,
-                                                                  self._ids[DexParser.MethodIdItem]):
-                    if name not in ignored_names:
-                        yield dot_sep_name + "#" + name
+                    for name in directory.get_methods_with_annotation(test_annotation_descriptor,
+                                                                      self._ids[DexParser.MethodIdItem]):
+                        if name not in ignored_names:
+                            yield dot_sep_name + "#" + name
 
 
 class AXMLParser(object):
