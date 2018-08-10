@@ -1,3 +1,4 @@
+import fnmatch
 import os
 import re
 import shutil
@@ -475,9 +476,23 @@ class DexParser(object):
         self._bytestream = ByteStream(file_name)
         self._headers = DexParser.Header(self._bytestream)
         self._headers.validate()
+
+        def get_filter(filter_string):
+            """
+            :param filter_string: string used to filter package names
+            :return: lambda function taking a name and returning whether there is a match with filter string
+            """
+            if filter_string.startswith('re::'):
+                regex = re.compile(filter_string[4:])
+                return lambda n: bool(re.match(regex, n))
+            elif any([c in filter_string for c in ['*', '[', '?']]):
+                # wildcard syntax filter:
+                return lambda n: bool(fnmatch.fnmatch(n, filter_string))
+            else:
+                return lambda n: bool(n.startswith(filter_string))
+
         # compile any regex patterns ahead of time and only once here
-        packages = [re.compile(p[4:]) if p.startswith('re::') else p for p in package_names or []]
-        self._package_filters = packages
+        self._package_filters = [get_filter(filter_name) for filter_name in package_names or []]
         self._ids = {}
         for clazz in [DexParser.StringIdItem, DexParser.TypeIdItem, DexParser.ProtoIdItem,
                       DexParser.FieldIdItem, DexParser.MethodIdItem, DexParser.ClassDefItem]:
@@ -534,7 +549,6 @@ class DexParser(object):
             return bool(re.match(filter, name))
         elif '*' in filter:
             # wildcard syntax filter:
-            import fnmatch
             filtered = fnmatch.fnmatch(name, filter)
             return bool(filtered)
         else:
@@ -547,7 +561,7 @@ class DexParser(object):
         """
         for class_def in self.find_classes_directly_inherited_from(descriptors):
             dot_sep_name = self._descriptor2name(class_def.descriptor)
-            if not self._package_filters or  any([self._is_match(dot_sep_name, f) for f in self._package_filters]):
+            if not self._package_filters or any([f(dot_sep_name) for f in self._package_filters]):
                 for method in self.find_method_names(class_def):
                     if method.startswith("test"):
                         yield method
@@ -560,7 +574,7 @@ class DexParser(object):
         ignored_annotation_descriptor = "Lorg/junit/Ignore;"
         for class_def in [c for c in self._ids[DexParser.ClassDefItem] if c.annotations_offset != 0]:
                 dot_sep_name = self._descriptor2name(class_def.descriptor)
-                if not self._package_filters or any([self._is_match(dot_sep_name, f) for f in self._package_filters]):
+                if not self._package_filters or any([f(dot_sep_name) for f in self._package_filters]):
                     with ByteStream.ContiguousReader(self._bytestream, offset=class_def.annotations_offset):
                         directory = DexParser.AnnotationsDirectoryItem(self._bytestream)
                     ignored_names = [n for n in directory.get_methods_with_annotation(ignored_annotation_descriptor,
