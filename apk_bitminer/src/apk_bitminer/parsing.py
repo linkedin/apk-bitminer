@@ -536,24 +536,6 @@ class DexParser(object):
         """
         return name[1:-1].replace('/', '.')
 
-    @staticmethod
-    def _is_match(name, filter):
-        """
-        check for match against filter.  If filter is not string, assume it is a regex compiled pattern object
-        :param name: name to be matched
-        :param filter: filter to match against
-        :return: whether name matches filter
-        """
-        if not isinstance(filter, six.string_types):
-            # have re expression pattern object
-            return bool(re.match(filter, name))
-        elif '*' in filter:
-            # wildcard syntax filter:
-            filtered = fnmatch.fnmatch(name, filter)
-            return bool(filtered)
-        else:
-            return name.startswith(filter)
-
     def find_junit3_tests(self, descriptors=list(JUNIT3_DEFAULT_DESCRIPTORS)):
         """
         :param descriptors:  which test classes to look for as proper test case classes
