@@ -43,27 +43,29 @@ class TestAXMLParsing(object):
 
     def test_apk_with_permissions(self):
         parser = AXMLParser.parse(COMPLEX_APK)
-        assert set(parser.permissions) == set(["android.permission.WRITE_EXTERNAL_STORAGE",
-                                               "android.permission.READ_EXTERNAL_STORAGE"])
+        assert set(parser.permissions) == {"android.permission.WRITE_EXTERNAL_STORAGE",
+                                           "android.permission.READ_EXTERNAL_STORAGE"}
 
     def test_apk_later_version(self):
         parser = AXMLParser.parse(USER_ACCEPTANCE_APK)
-        assert set(['android.permission.ACCESS_FINE_LOCATION',
-                    'android.permission.MANAGE_ACCOUNTS',
-                    'android.permission.WRITE_SYNC_SETTINGS',
-                    'android.permission.INTERNET',
-                    'android.permission.READ_SYNC_SETTINGS',
-                    'android.permission.AUTHENTICATE_ACCOUNTS', ]) < set(parser.permissions)
+        assert {'android.permission.ACCESS_FINE_LOCATION',
+                'android.permission.MANAGE_ACCOUNTS',
+                'android.permission.WRITE_SYNC_SETTINGS',
+                'android.permission.INTERNET',
+                'android.permission.READ_SYNC_SETTINGS',
+                'android.permission.AUTHENTICATE_ACCOUNTS', } < set(parser.permissions)
 
     def test_main(self, monkeypatch):
         argv = sys.argv
+        import tempfile
+        with tempfile.NamedTemporaryFile('wr+') as f:
+            monkeypatch.setattr('sys.stdout', f)
 
-        def write_(text):
-            assert text == EXPECTED_XML
-
-        try:
-            sys.argv = [argv[0], BASIC_APK]
-            monkeypatch.setattr("sys.stdout.write", write_)
-            main_axml()
-        finally:
-            sys.argv = argv
+            try:
+                sys.argv = [argv[0], BASIC_APK]
+                main_axml()
+                sys.stdout.flush()
+                sys.stdout.seek(0)
+                assert sys.stdout.read() == EXPECTED_XML
+            finally:
+                sys.argv = argv

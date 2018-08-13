@@ -87,24 +87,30 @@ class TestDexParsing(object):
     def test_main(self, monkeypatch):
         argv = sys.argv
         tests = []
+        import tempfile
+        with tempfile.NamedTemporaryFile('wr+') as f:
+            monkeypatch.setattr('sys.stdout', f)
 
-        def write_(text):
-            tests.append(text)
-
-        try:
-            sys.argv = [argv[0], TEST_APK, "com.linkedin.mdctest"]
-            monkeypatch.setattr("sys.stdout.write", write_)
-            main()
-            assert {u'com.linkedin.mdctest.ExampleInstrumentedTest#testTestButlerSetImmersiveModeConfirmation',
-                    u'com.linkedin.mdctest.ExampleInstrumentedTest#testTestButlerCleanup',
-                    u'com.linkedin.mdctest.ExampleInstrumentedTest#testFailStatus',
-                    u'com.linkedin.mdctest.ExampleInstrumentedTest#testPassStatus',
-                    u'com.linkedin.mdctest.ExampleInstrumentedTest#testTestButlerSetLocationMode',
-                    u'com.linkedin.mdctest.ExampleInstrumentedTest#testZException',
-                    u'com.linkedin.mdctest.ExampleInstrumentedTest#testTestButlerSetWifiState',
-                    u'com.linkedin.mdctest.ExampleInstrumentedTest#testTestButlerRotation'} < set(tests)
-        finally:
-            sys.argv = argv
+            try:
+                sys.argv = [argv[0], TEST_APK, "com.linkedin.mdctest"]
+                main()
+                sys.stdout.flush()
+                sys.stdout.seek(0)
+                for line in sys.stdout:
+                    tests.append(line.strip())
+                expected = ['com.linkedin.mdctest.ExampleInstrumentedTest#testTestButlerSetImmersiveModeConfirmation',
+                        'com.linkedin.mdctest.ExampleInstrumentedTest#testTestButlerCleanup',
+                        'com.linkedin.mdctest.ExampleInstrumentedTest#testFailStatus',
+                        'com.linkedin.mdctest.ExampleInstrumentedTest#testPassStatus',
+                        'com.linkedin.mdctest.ExampleInstrumentedTest#testTestButlerSetLocationMode',
+                        'com.linkedin.mdctest.ExampleInstrumentedTest#testZException',
+                        'com.linkedin.mdctest.ExampleInstrumentedTest#testTestButlerSetWifiState',
+                        'com.linkedin.mdctest.ExampleInstrumentedTest#testTestButlerRotation']
+                expected.sort()
+                tests.sort()
+                assert expected == tests
+            finally:
+                sys.argv = argv
 
     def test_complex_apk(self):
         argv = sys.argv
