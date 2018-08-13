@@ -26,8 +26,11 @@ Via the api:
     from apk_bitminer.parsing import DexParser
 
     # print all tests in an apk, but only those in package 'filter.on.package'
-    for test in DexParser.parse("/path/to/some.apk", ["filer.on.package'])
+    for test in DexParser.parse("/path/to/some.apk", pacakge_names=["filer.on.package'])
         print(test)
+
+Note that package_names can be a filename-like wildcard expression contain "*", "[]" or "?", or a regular expression.
+Regular expressions are passed in with the prefix "re::", for example "re::filter\.on\.pack[age]*".
 
 Extracting AndroidManifest.xml
 ==============================

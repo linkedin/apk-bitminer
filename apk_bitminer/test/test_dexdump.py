@@ -28,8 +28,16 @@ class TestDexParsing(object):
         tests = DexParser.parse(TEST_APK)
         assert sorted(tests) == TestDexParsing.EXPECTED_TESTS
 
-    def test_apk_parsing_filtered(self):
+    def test_apk_parsing_filtered_plain_text(self):
         tests = DexParser.parse(TEST_APK, ["com.linkedin.mdctest"])
+        assert sorted(tests) == TestDexParsing.EXPECTED_TESTS
+
+    def test_apk_parsing_filtered_wildcard(self):
+        tests = DexParser.parse(TEST_APK, ["com.linkedin.mdc*"])
+        assert sorted(tests) == TestDexParsing.EXPECTED_TESTS
+
+    def test_apk_parsing_filtered_regex(self):
+        tests = DexParser.parse(TEST_APK, ["re::com\.linkedin\.mdct.st[s]*"])
         assert sorted(tests) == TestDexParsing.EXPECTED_TESTS
 
     def test_apk_parsing_filtered_empty_result(self):
@@ -87,15 +95,14 @@ class TestDexParsing(object):
             sys.argv = [argv[0], TEST_APK, "com.linkedin.mdctest"]
             monkeypatch.setattr("sys.stdout.write", write_)
             main()
-            assert set([u'com.linkedin.mdctest.ExampleInstrumentedTest#testTestButlerSetImmersiveModeConfirmation',
-                        u'com.linkedin.mdctest.ExampleInstrumentedTest#testTestButlerCleanup',
-                        u'com.linkedin.mdctest.ExampleInstrumentedTest#testFailStatus',
-                        u'com.linkedin.mdctest.ExampleInstrumentedTest#testPassStatus',
-                        u'com.linkedin.mdctest.ExampleInstrumentedTest#testTestButlerSetLocationMode',
-                        u'com.linkedin.mdctest.ExampleInstrumentedTest#testZException',
-                        u'com.linkedin.mdctest.ExampleInstrumentedTest#testTestButlerSetWifiState',
-                        u'com.linkedin.mdctest.ExampleInstrumentedTest#testTestButlerRotation',
-                        ]) < set(tests)
+            assert {u'com.linkedin.mdctest.ExampleInstrumentedTest#testTestButlerSetImmersiveModeConfirmation',
+                    u'com.linkedin.mdctest.ExampleInstrumentedTest#testTestButlerCleanup',
+                    u'com.linkedin.mdctest.ExampleInstrumentedTest#testFailStatus',
+                    u'com.linkedin.mdctest.ExampleInstrumentedTest#testPassStatus',
+                    u'com.linkedin.mdctest.ExampleInstrumentedTest#testTestButlerSetLocationMode',
+                    u'com.linkedin.mdctest.ExampleInstrumentedTest#testZException',
+                    u'com.linkedin.mdctest.ExampleInstrumentedTest#testTestButlerSetWifiState',
+                    u'com.linkedin.mdctest.ExampleInstrumentedTest#testTestButlerRotation'} < set(tests)
         finally:
             sys.argv = argv
 
