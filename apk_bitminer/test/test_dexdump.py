@@ -88,7 +88,7 @@ class TestDexParsing(object):
         argv = sys.argv
         tests = []
         import tempfile
-        with tempfile.NamedTemporaryFile('wr+') as f:
+        with tempfile.NamedTemporaryFile('w+') as f:
             monkeypatch.setattr('sys.stdout', f)
 
             try:

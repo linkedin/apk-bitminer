@@ -208,6 +208,10 @@ class ByteStream(object):
         def __iter__(self):
             return self
 
+        # Python3:
+        def __next__(self):
+            return self.next()
+
         def next(self):
             if self._count is not None and self._index >= self._count:
                 raise StopIteration()

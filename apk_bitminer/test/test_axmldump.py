@@ -58,7 +58,7 @@ class TestAXMLParsing(object):
     def test_main(self, monkeypatch):
         argv = sys.argv
         import tempfile
-        with tempfile.NamedTemporaryFile('wr+') as f:
+        with tempfile.NamedTemporaryFile('w+') as f:
             monkeypatch.setattr('sys.stdout', f)
 
             try:

@@ -8,8 +8,6 @@ import tempfile
 import zipfile
 from abc import ABCMeta, abstractmethod
 
-import six
-
 from . import ByteStream
 
 
@@ -173,6 +171,10 @@ class DexParser(object):
 
         def __iter__(self):
             return self
+
+        # Python3:
+        def __next__(self):
+            return self.next()
 
         def next(self):
             return next(self.entries)
