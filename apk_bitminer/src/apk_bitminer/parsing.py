@@ -701,8 +701,8 @@ class AXMLParser(object):
                 elif child.name == "uses-sdk":
                     target_sdk_version = attrs_dict.get("targetSdkVersion")
                     min_sdk_version = attrs_dict.get("minSdkVersion")
-                    target_sdk_version = int(target_sdk_version.split(' ')[1], 16)
-                    min_sdk_version = int(min_sdk_version.split(' ')[1], 16)
+                    target_sdk_version = int(target_sdk_version.split(' ')[1], 16) if target_sdk_version else None
+                    min_sdk_version = int(min_sdk_version.split(' ')[1], 16) if min_sdk_version else None
                     self._uses_sdk = AXMLParser.UsesSdk(target_sdk_version=target_sdk_version,
                                                         min_sdk_version=min_sdk_version)
                 elif child.name == "uses-permission":
